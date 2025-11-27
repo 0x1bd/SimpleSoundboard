@@ -2,25 +2,35 @@
   "schemaVersion": 1,
   "id": "simplesoundboard",
   "version": "${version}",
-  "name": "SimpleSoundboard",
-  "description": "Simple soundboard mod for simple voice mod",
-  "authors": [],
-  "contact": {},
+  "name": "Simple Soundboard",
+  "description": "Soundboard mod for simple voice mod",
+  "authors": [
+    "kvxd"
+  ],
+  "contact": {
+    "homepage": "https://github.com/0x1bd/SimpleSoundboard",
+    "issues": "https://github.com/0x1bd/SimpleSoundboard/issues",
+    "sources": "https://github.com/0x1bd/SimpleSoundboard"
+  },
   "license": "GPL-3.0",
   "icon": "assets/simplesoundboard/icon.png",
   "environment": "client",
   "entrypoints": {
     "client": [
-      "org.kvxd.simplesoundboard.client.SimpleSoundBoardModClient"
+      "org.kvxd.simplesoundboard.SimpleSoundboardClient"
+    ],
+    "voicechat": [
+      "org.kvxd.simplesoundboard.integration.SoundboardPlugin"
+    ],
+    "modmenu": [
+      "org.kvxd.simplesoundboard.integration.ModMenuIntegration"
     ]
   },
-  "mixins": [
-    "simplesoundboard.mixins.json"
-  ],
   "depends": {
     "fabricloader": ">=${loader_version}",
     "fabric-language-kotlin": ">=${kotlin_loader_version}",
     "fabric": "*",
-    "minecraft": "${minecraft_version}"
+    "minecraft": "${minecraft_version}",
+    "voicechat_api": ">=${voicechat_api_version}"
   }
 }
