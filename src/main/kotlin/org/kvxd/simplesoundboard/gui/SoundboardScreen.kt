@@ -150,16 +150,22 @@ class SoundboardScreen(
                 val savedVol = SoundboardConfig.getVolume(file.name)
 
                 playBtn = ButtonWidget.builder(Text.literal("Play")) {
-                    SoundboardAudioSystem.playFile(file, savedVol.local, savedVol.player)
+                    if (SoundboardAudioSystem.isPlaying(file.name)) {
+                        SoundboardAudioSystem.stop(file.name)
+                    } else {
+                        SoundboardAudioSystem.playFile(file, savedVol.local, savedVol.player)
+                    }
                 }.size(40, 20).build()
 
                 localSlider = SimpleVolumeSlider(0, 0, 100, 20, Text.literal("Local"), savedVol.local) { newVal ->
                     savedVol.local = newVal
+                    SoundboardAudioSystem.setVolume(file.name, savedVol.local, savedVol.player)
                     SoundboardConfig.save()
                 }
 
                 playerSlider = SimpleVolumeSlider(0, 0, 100, 20, Text.literal("Player"), savedVol.player) { newVal ->
                     savedVol.player = newVal
+                    SoundboardAudioSystem.setVolume(file.name, savedVol.local, savedVol.player)
                     SoundboardConfig.save()
                 }
 
@@ -170,11 +176,17 @@ class SoundboardScreen(
             }
 
             override fun render(context: DrawContext, mouseX: Int, mouseY: Int, hovered: Boolean, deltaTicks: Float) {
+                val isPlaying = SoundboardAudioSystem.isPlaying(file.name)
+                playBtn.message =
+                    if (isPlaying) Text.literal("Stop").formatted(Formatting.RED) else Text.literal("Play")
+
+                val textY = y + (height - textRenderer.fontHeight) / 2 + 1
+
                 context.drawText(
                     textRenderer,
                     file.nameWithoutExtension,
                     x + 2,
-                    y + 5,
+                    textY,
                     Color.WHITE.rgb,
                     true
                 )

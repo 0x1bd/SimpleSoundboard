@@ -120,7 +120,7 @@ object SoundboardAudioSystem {
             try {
                 val pcmData = decodeMp3(file)
                 if (pcmData != null && pcmData.isNotEmpty()) {
-                    activeSounds.add(PlayingSound(pcmData, localVol, playerVol))
+                    activeSounds.add(PlayingSound(file.name, pcmData, localVol, playerVol))
                 } else {
                     client.execute {
                         client.player?.sendMessage(Text.of("§cFailed to decode: ${file.name}"), false)
@@ -128,6 +128,23 @@ object SoundboardAudioSystem {
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
+            }
+        }
+    }
+
+    fun isPlaying(file: String): Boolean {
+        return activeSounds.any { it.name == file && !it.isFinished }
+    }
+
+    fun stop(file: String) {
+        activeSounds.removeIf { it.name == file }
+    }
+
+    fun setVolume(file: String, localVol: Float, playerVol: Float) {
+        for (sound in activeSounds) {
+            if (sound.name == file) {
+                sound.localVolume = localVol
+                sound.playerVolume = playerVol
             }
         }
     }
@@ -163,9 +180,10 @@ object SoundboardAudioSystem {
     }
 
     private class PlayingSound(
+        val name: String,
         private val samples: ShortArray,
-        val localVolume: Float,
-        val playerVolume: Float
+        @Volatile var localVolume: Float,
+        @Volatile var playerVolume: Float
     ) {
 
         private var cursor = 0
