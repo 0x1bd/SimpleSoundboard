@@ -16,9 +16,10 @@ with separate volume controls for what you hear and what other players hear.
 
 ## Dependencies
 
-[Fabric Loader](https://fabricmc.net)
-[Fabric API](https://modrinth.com/mod/fabric-api)
-[Simple Voice Chat](https://modrinth.com/plugin/simple-voice-chat)
+[Fabric Loader](https://fabricmc.net) <br>
+[Fabric API](https://modrinth.com/mod/fabric-api) <br>
+[Simple Voice Chat](https://modrinth.com/plugin/simple-voice-chat) <br>
+[Fabric Language Kotlin](https://modrinth.com/mod/fabric-language-kotlin)
 
 ## Installation
 
