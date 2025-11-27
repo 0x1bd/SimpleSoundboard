@@ -48,7 +48,8 @@ object SoundboardAudioSystem {
 
     fun onMergeSound(event: MergeClientSoundEvent) {
         val api = clientApi ?: return
-        if (api.isMuted || api.isDisabled) {
+
+        if (api.isDisabled || (api.isMuted && !SoundboardConfig.playWhileMuted)) {
             if (activeSounds.isNotEmpty()) activeSounds.clear()
             return
         }
@@ -111,7 +112,8 @@ object SoundboardAudioSystem {
             client.player?.sendMessage(Text.of("§cVoice chat not connected!"), true)
             return
         }
-        if (api.isMuted) {
+
+        if (api.isMuted && !SoundboardConfig.playWhileMuted) {
             client.player?.sendMessage(Text.of("§cCannot play soundboard while muted!"), true)
             return
         }

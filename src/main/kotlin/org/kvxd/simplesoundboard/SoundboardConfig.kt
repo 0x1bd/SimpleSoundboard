@@ -10,6 +10,7 @@ object SoundboardConfig {
     private val configFile = File(MinecraftClient.getInstance().runDirectory, "config/simplesoundboard.json")
 
     var playLocally: Boolean = true
+    var playWhileMuted: Boolean = false // New Option
     var soundVolumes: MutableMap<String, SoundVolume> = mutableMapOf()
 
     data class SoundVolume(var local: Float = 1.0f, var player: Float = 1.0f)
@@ -25,7 +26,7 @@ object SoundboardConfig {
     fun save() {
         try {
             if (!configFile.parentFile.exists()) configFile.parentFile.mkdirs()
-            val json = gson.toJson(ConfigData(playLocally, soundVolumes))
+            val json = gson.toJson(ConfigData(playLocally, playWhileMuted, soundVolumes))
             configFile.writeText(json)
         } catch (e: Exception) {
             e.printStackTrace()
@@ -37,6 +38,7 @@ object SoundboardConfig {
         try {
             val data = gson.fromJson(configFile.readText(), ConfigData::class.java)
             playLocally = data.playLocally
+            playWhileMuted = data.playWhileMuted
             soundVolumes = data.soundVolumes
         } catch (e: Exception) {
             e.printStackTrace()
@@ -45,6 +47,7 @@ object SoundboardConfig {
 
     private data class ConfigData(
         val playLocally: Boolean,
+        val playWhileMuted: Boolean, // New Option
         val soundVolumes: MutableMap<String, SoundVolume>
     )
 }

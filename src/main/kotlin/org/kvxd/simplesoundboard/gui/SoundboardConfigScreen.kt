@@ -22,6 +22,14 @@ class SoundboardConfigScreen(private val parent: Screen?) : Screen(Text.literal(
                     SoundboardConfig.save()
                 }
         )
+
+        addDrawableChild(
+            CyclingButtonWidget.onOffBuilder(SoundboardConfig.playWhileMuted)
+                .build(width / 2 - 100, 75, 200, 20, Text.literal("Play While Muted")) { _, value ->
+                    SoundboardConfig.playWhileMuted = value
+                    SoundboardConfig.save()
+                }
+        )
     }
 
     override fun close() {
