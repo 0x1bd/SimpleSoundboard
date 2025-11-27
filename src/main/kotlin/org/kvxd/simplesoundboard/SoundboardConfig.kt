@@ -10,7 +10,7 @@ object SoundboardConfig {
     private val configFile = File(MinecraftClient.getInstance().runDirectory, "config/simplesoundboard.json")
 
     var playLocally: Boolean = true
-    var playWhileMuted: Boolean = false // New Option
+    var playWhileMuted: Boolean = false
     var soundVolumes: MutableMap<String, SoundVolume> = mutableMapOf()
 
     data class SoundVolume(var local: Float = 1.0f, var player: Float = 1.0f)
@@ -47,7 +47,7 @@ object SoundboardConfig {
 
     private data class ConfigData(
         val playLocally: Boolean,
-        val playWhileMuted: Boolean, // New Option
+        val playWhileMuted: Boolean,
         val soundVolumes: MutableMap<String, SoundVolume>
     )
 }
