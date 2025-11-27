@@ -24,7 +24,7 @@ class SimpleSoundboardClient : ClientModInitializer {
         OPEN_GUI_KEY = KeyBindingHelper.registerKeyBinding(
             KeyBinding(
                 "key.$MOD_ID.open",
-                GLFW.GLFW_KEY_V,
+                GLFW.GLFW_KEY_J,
                 KEY_CATEGORY
             )
         )
