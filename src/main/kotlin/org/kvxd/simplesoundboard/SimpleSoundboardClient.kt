@@ -4,10 +4,13 @@ import net.fabricmc.api.ClientModInitializer
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper
+import net.minecraft.client.MinecraftClient
 import net.minecraft.client.option.KeyBinding
+import net.minecraft.client.util.InputUtil
 import net.minecraft.util.Identifier
 import org.kvxd.simplesoundboard.gui.SoundboardScreen
 import org.lwjgl.glfw.GLFW
+import java.io.File
 
 class SimpleSoundboardClient : ClientModInitializer {
 
@@ -18,6 +21,8 @@ class SimpleSoundboardClient : ClientModInitializer {
         val KEY_CATEGORY: KeyBinding.Category = KeyBinding.Category.create(Identifier.of(MOD_ID, "main"))
 
         lateinit var OPEN_GUI_KEY: KeyBinding
+
+        private val pressedKeys = mutableSetOf<Int>()
     }
 
     override fun onInitializeClient() {
@@ -30,13 +35,46 @@ class SimpleSoundboardClient : ClientModInitializer {
         )
 
         ClientTickEvents.END_CLIENT_TICK.register { client ->
+            if (client.player == null) return@register
+
             if (OPEN_GUI_KEY.wasPressed()) {
                 client.setScreen(SoundboardScreen())
+            }
+
+            if (client.currentScreen == null) {
+                handleSoundKeybinds(client)
             }
         }
 
         ClientLifecycleEvents.CLIENT_STOPPING.register {
             SoundboardConfig.save()
+        }
+    }
+
+    private fun handleSoundKeybinds(client: MinecraftClient) {
+        val soundDir = File(client.runDirectory, "soundboard")
+
+        for ((filename, data) in SoundboardConfig.sounds) {
+            val keyCode = data.keybind
+            if (keyCode <= 0 || keyCode == GLFW.GLFW_KEY_ESCAPE) continue
+
+            val isPressed = InputUtil.isKeyPressed(client.window, keyCode)
+            val wasPressed = pressedKeys.contains(keyCode)
+
+            if (isPressed && !wasPressed) {
+                pressedKeys.add(keyCode)
+
+                val file = File(soundDir, filename)
+                if (file.exists()) {
+                    if (SoundboardAudioSystem.isPlaying(filename)) {
+                        SoundboardAudioSystem.stop(filename)
+                    } else {
+                        SoundboardAudioSystem.playFile(file, data.localVolume, data.playerVolume)
+                    }
+                }
+            } else if (!isPressed && wasPressed) {
+                pressedKeys.remove(keyCode)
+            }
         }
     }
 }

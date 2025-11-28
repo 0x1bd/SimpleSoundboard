@@ -8,10 +8,10 @@ import net.minecraft.client.gui.Selectable
 import net.minecraft.client.gui.screen.Screen
 import net.minecraft.client.gui.widget.ButtonWidget
 import net.minecraft.client.gui.widget.ElementListWidget
-import net.minecraft.client.gui.widget.SliderWidget
 import net.minecraft.client.gui.widget.TextFieldWidget
 import net.minecraft.client.gui.widget.TextWidget
 import net.minecraft.client.input.KeyInput
+import net.minecraft.client.util.InputUtil
 import net.minecraft.text.Text
 import net.minecraft.util.Formatting
 import net.minecraft.util.Util
@@ -20,7 +20,6 @@ import org.kvxd.simplesoundboard.SoundboardConfig
 import org.lwjgl.glfw.GLFW
 import java.awt.Color
 import java.io.File
-import kotlin.math.roundToInt
 
 class SoundboardScreen(
     private val parent: Screen? = null
@@ -29,73 +28,75 @@ class SoundboardScreen(
     private val mc = MinecraftClient.getInstance()
     private val soundDir = File(mc.runDirectory, "soundboard")
 
+    private val bottomPaneHeight = 65
+    private val headerHeight = 55
+
     private lateinit var queryField: TextFieldWidget
     private lateinit var resultsList: ResultListWidget
-    private lateinit var stopButton: ButtonWidget
-    private lateinit var refreshButton: ButtonWidget
-    private lateinit var openFolderButton: ButtonWidget
-    private lateinit var configButton: ButtonWidget
-    private lateinit var doneButton: ButtonWidget
 
+    private lateinit var detailLocalSlider: VolumeSlider
+    private lateinit var detailPlayerSlider: VolumeSlider
+    private lateinit var detailBindBtn: ButtonWidget
+    private lateinit var detailLabel: TextWidget
+
+    private var selectedFile: File? = null
+    private var isBinding = false
     private var results: List<File> = emptyList()
 
     override fun init() {
         if (!soundDir.exists()) soundDir.mkdirs()
 
         val padding = 10
-        val actionButtonWidth = 80
-        val actionButtonHeight = 20
-        val buttonSpacing = 5
         val searchFieldWidth = width - 2 * padding
+        val contentWidth = width - 2 * padding
 
         val titleWidget = TextWidget(Text.literal("Soundboard").formatted(Formatting.BOLD), textRenderer)
         titleWidget.setPosition(width / 2 - titleWidget.width / 2, 5)
         addDrawableChild(titleWidget)
 
-        queryField = TextFieldWidget(textRenderer, padding, 25, searchFieldWidth, 20, Text.literal("Search"))
+        queryField = TextFieldWidget(textRenderer, padding, 20, searchFieldWidth, 20, Text.literal("Search"))
         queryField.setChangedListener { scanSounds() }
         addDrawableChild(queryField)
 
-        val actionsY = 50
-        val totalActionWidth = (actionButtonWidth * 4) + (buttonSpacing * 3)
-        var currentX = width / 2 - totalActionWidth / 2
+        setupTopButtons()
 
-        stopButton = ButtonWidget.builder(Text.literal("Stop All").formatted(Formatting.RED)) {
-            SoundboardAudioSystem.stopAll()
-        }.size(actionButtonWidth, actionButtonHeight).position(currentX, actionsY).build()
-        addDrawableChild(stopButton)
-        currentX += actionButtonWidth + buttonSpacing
+        val detailsY = height - bottomPaneHeight + 5
 
-        refreshButton = ButtonWidget.builder(Text.literal("Refresh")) {
-            scanSounds()
-        }.size(actionButtonWidth, actionButtonHeight).position(currentX, actionsY).build()
-        addDrawableChild(refreshButton)
-        currentX += actionButtonWidth + buttonSpacing
+        detailLabel = TextWidget(Text.literal("Select a sound to edit settings"), textRenderer)
+        detailLabel.setPosition(width / 2 - detailLabel.width / 2, detailsY)
+        addDrawableChild(detailLabel)
 
-        openFolderButton = ButtonWidget.builder(Text.literal("Folder")) {
-            Util.getOperatingSystem().open(soundDir)
-        }.size(actionButtonWidth, actionButtonHeight).position(currentX, actionsY).build()
-        addDrawableChild(openFolderButton)
-        currentX += actionButtonWidth + buttonSpacing
+        detailLocalSlider = VolumeSlider(width / 2 - 155, detailsY + 15, 100, 20, Text.literal("Local"), 1.0f) {
+            updateSelectedVolume(local = it)
+        }
+        detailLocalSlider.active = false
+        addDrawableChild(detailLocalSlider)
 
-        configButton = ButtonWidget.builder(Text.literal("Config")) {
-            mc.setScreen(SoundboardConfigScreen(this))
-        }.size(actionButtonWidth, actionButtonHeight).position(currentX, actionsY).build()
-        addDrawableChild(configButton)
+        detailPlayerSlider = VolumeSlider(width / 2 - 50, detailsY + 15, 100, 20, Text.literal("Player"), 1.0f) {
+            updateSelectedVolume(player = it)
+        }
+        detailPlayerSlider.active = false
+        addDrawableChild(detailPlayerSlider)
 
-        doneButton = ButtonWidget.builder(Text.translatable("gui.done")) { close() }
+        detailBindBtn = ButtonWidget.builder(Text.literal("Keybind: None")) {
+            if (selectedFile != null) {
+                isBinding = true
+                it.message = Text.literal("> Press Key <").formatted(Formatting.YELLOW)
+            }
+        }.size(100, 20).position(width / 2 + 55, detailsY + 15).build()
+        detailBindBtn.active = false
+        addDrawableChild(detailBindBtn)
+
+        addDrawableChild(ButtonWidget.builder(Text.translatable("gui.done")) { close() }
             .size(150, 20)
-            .position(width / 2 - 75, height - 30)
-            .build()
-        addDrawableChild(doneButton)
+            .position(width / 2 - 75, height - 23)
+            .build())
 
-        val listTop = actionsY + actionButtonHeight + 10
-        val listBottom = height - 50
-        val listWidth = width - 2 * padding
+        val listTop = headerHeight + 14
+        val listBottom = height - bottomPaneHeight
+        val itemHeight = 22
 
-        val itemHeight = 35
-
-        resultsList = ResultListWidget(mc, listWidth, listBottom - listTop, listTop, itemHeight)
+        resultsList = ResultListWidget(mc, contentWidth, listBottom - listTop, listTop, itemHeight)
         resultsList.setX(padding)
         addDrawableChild(resultsList)
 
@@ -103,12 +104,117 @@ class SoundboardScreen(
         setInitialFocus(queryField)
     }
 
+    private fun setupTopButtons() {
+        val actionButtonWidth = 80
+        val actionButtonHeight = 20
+        val buttonSpacing = 5
+        val actionsY = 45
+
+        val totalActionWidth = (actionButtonWidth * 4) + (buttonSpacing * 3)
+        var currentX = width / 2 - totalActionWidth / 2
+
+        addDrawableChild(
+            ButtonWidget.builder(Text.literal("Stop All").formatted(Formatting.RED)) {
+                SoundboardAudioSystem.stopAll()
+            }.size(actionButtonWidth, actionButtonHeight)
+                .position(currentX, actionsY).build()
+        )
+        currentX += actionButtonWidth + buttonSpacing
+
+        addDrawableChild(
+            ButtonWidget.builder(Text.literal("Refresh")) {
+                scanSounds()
+            }.size(actionButtonWidth, actionButtonHeight)
+                .position(currentX, actionsY).build()
+        )
+        currentX += actionButtonWidth + buttonSpacing
+
+        addDrawableChild(
+            ButtonWidget.builder(Text.literal("Folder")) {
+                Util.getOperatingSystem().open(soundDir)
+            }.size(actionButtonWidth, actionButtonHeight)
+                .position(currentX, actionsY).build()
+        )
+        currentX += actionButtonWidth + buttonSpacing
+
+        addDrawableChild(
+            ButtonWidget.builder(Text.literal("Config")) {
+                mc.setScreen(SoundboardConfigScreen(this))
+            }.size(actionButtonWidth, actionButtonHeight)
+                .position(currentX, actionsY).build()
+        )
+    }
+
     private fun scanSounds() {
         val query = queryField.text.trim().lowercase()
         val allFiles = soundDir.listFiles { _, name -> name.endsWith(".mp3") } ?: emptyArray()
 
-        results = allFiles.filter { it.name.lowercase().contains(query) }.sortedBy { it.name }
+        results = allFiles.filter { it.name.lowercase().contains(query) }
+            .sortedWith(compareByDescending<File> { SoundboardConfig[it.name].favorite }
+                .thenBy { it.name })
+
         resultsList.setResults(results)
+
+        if (selectedFile != null && results.none { it.name == selectedFile!!.name }) {
+            selectSound(null)
+        }
+    }
+
+    fun selectSound(file: File?) {
+        this.selectedFile = file
+        isBinding = false
+
+        if (file == null) {
+            detailLabel.message = Text.literal("Select a sound to edit settings").formatted(Formatting.GRAY)
+            detailLabel.x = width / 2 - textRenderer.getWidth(detailLabel.message) / 2
+
+            detailLocalSlider.active = false
+            detailPlayerSlider.active = false
+            detailBindBtn.active = false
+            detailBindBtn.message = Text.literal("Keybind: -")
+        } else {
+            val data = SoundboardConfig[file.name]
+
+            detailLabel.message = Text.literal("Settings: ${file.name}").formatted(Formatting.YELLOW)
+            detailLabel.x = width / 2 - textRenderer.getWidth(detailLabel.message) / 2
+
+            detailLocalSlider.active = true
+            detailLocalSlider.setValue(data.localVolume)
+
+            detailPlayerSlider.active = true
+            detailPlayerSlider.setValue(data.playerVolume)
+
+            detailBindBtn.active = true
+            updateBindButtonText(data.keybind)
+        }
+    }
+
+    private fun updateSelectedVolume(local: Float? = null, player: Float? = null) {
+        val file = selectedFile ?: return
+        val data = SoundboardConfig[file.name]
+
+        if (local != null) data.localVolume = local
+        if (player != null) data.playerVolume = player
+
+        SoundboardConfig.save()
+        SoundboardAudioSystem.setVolume(file.name, data.localVolume, data.playerVolume)
+    }
+
+    private fun updateBindButtonText(keyCode: Int) {
+        val keyName =
+            if (keyCode > 0)
+                InputUtil.fromKeyCode(KeyInput(keyCode, 0, 0)).localizedText
+            else
+                Text.literal("None")
+
+        detailBindBtn.message = Text.literal("Keybind: ").append(keyName)
+    }
+
+    override fun render(context: DrawContext, mouseX: Int, mouseY: Int, delta: Float) {
+        super.render(context, mouseX, mouseY, delta)
+
+        val lineY = height - bottomPaneHeight
+        context.fill(10, lineY, width - 10, lineY + 1, Color.GRAY.rgb)
     }
 
     override fun close() {
@@ -117,10 +223,28 @@ class SoundboardScreen(
     }
 
     override fun keyPressed(input: KeyInput): Boolean {
+        if (isBinding && selectedFile != null) {
+            val file = selectedFile!!.name
+            val data = SoundboardConfig[file]
+
+            if (input.key == GLFW.GLFW_KEY_ESCAPE) {
+                data.keybind = -1
+            } else {
+                data.keybind = input.key()
+            }
+
+            SoundboardConfig.save()
+            updateBindButtonText(data.keybind)
+            isBinding = false
+
+            return true
+        }
+
         if (input.key == GLFW.GLFW_KEY_ESCAPE) {
             close()
             return true
         }
+
         return super.keyPressed(input)
     }
 
@@ -136,43 +260,38 @@ class SoundboardScreen(
 
         override fun getRowWidth(): Int = width - 20
 
-        private inner class Entry(private val file: File) : ElementListWidget.Entry<Entry>() {
+        inner class Entry(private val file: File) : ElementListWidget.Entry<Entry>() {
 
             private val playBtn: ButtonWidget
-            private val localSlider: SimpleVolumeSlider
-            private val playerSlider: SimpleVolumeSlider
+            private val favBtn: ButtonWidget
             private val elements = mutableListOf<Element>()
             private val selectables = mutableListOf<Selectable>()
 
-            private var focusedWidget: Element? = null
-
             init {
-                val savedVol = SoundboardConfig.getVolume(file.name)
+                val data = SoundboardConfig[file.name]
+
+                favBtn = ButtonWidget.builder(
+                    Text.literal(if (data.favorite) "★" else "☆")
+                        .formatted(if (data.favorite) Formatting.GOLD else Formatting.GRAY)
+                ) {
+                    data.favorite = !data.favorite
+                    SoundboardConfig.save()
+                    scanSounds()
+                }.size(20, 20).build()
 
                 playBtn = ButtonWidget.builder(Text.literal("Play")) {
                     if (SoundboardAudioSystem.isPlaying(file.name)) {
                         SoundboardAudioSystem.stop(file.name)
                     } else {
-                        SoundboardAudioSystem.playFile(file, savedVol.local, savedVol.player)
+                        val currentData = SoundboardConfig[file.name]
+                        SoundboardAudioSystem.playFile(file, currentData.localVolume, currentData.playerVolume)
                     }
                 }.size(40, 20).build()
 
-                localSlider = SimpleVolumeSlider(0, 0, 100, 20, Text.literal("Local"), savedVol.local) { newVal ->
-                    savedVol.local = newVal
-                    SoundboardAudioSystem.setVolume(file.name, savedVol.local, savedVol.player)
-                    SoundboardConfig.save()
-                }
-
-                playerSlider = SimpleVolumeSlider(0, 0, 100, 20, Text.literal("Player"), savedVol.player) { newVal ->
-                    savedVol.player = newVal
-                    SoundboardAudioSystem.setVolume(file.name, savedVol.local, savedVol.player)
-                    SoundboardConfig.save()
-                }
-
+                elements.add(favBtn)
                 elements.add(playBtn)
-                elements.add(localSlider)
-                elements.add(playerSlider)
-                selectables.addAll(listOf(playBtn, localSlider, playerSlider))
+                selectables.add(favBtn)
+                selectables.add(playBtn)
             }
 
             override fun render(context: DrawContext, mouseX: Int, mouseY: Int, hovered: Boolean, deltaTicks: Float) {
@@ -180,105 +299,38 @@ class SoundboardScreen(
                 playBtn.message =
                     if (isPlaying) Text.literal("Stop").formatted(Formatting.RED) else Text.literal("Play")
 
+                if (selectedFile?.name == file.name) {
+                    context.fill(x, y + 1, x + width, y + height - 1, 0x33FFFFFF)
+                }
+
                 val textY = y + (height - textRenderer.fontHeight) / 2 + 1
+                var nameText = file.nameWithoutExtension
 
-                context.drawText(
-                    textRenderer,
-                    file.nameWithoutExtension,
-                    x + 2,
-                    textY,
-                    Color.WHITE.rgb,
-                    true
-                )
+                if (textRenderer.getWidth(nameText) > width - 70) {
+                    nameText = textRenderer.trimToWidth(nameText, width - 75) + "..."
+                }
 
-                val btnWidth = 40
-                val sliderWidth = 80
-                val gap = 5
+                context.drawText(textRenderer, nameText, x + 25, textY, Color.WHITE.rgb, true)
 
-                var currentRight = x + width - 5
+                favBtn.x = x
+                favBtn.y = y + (height - 20) / 2
+                favBtn.render(context, mouseX, mouseY, deltaTicks)
 
-                playBtn.x = currentRight - btnWidth
+                playBtn.x = x + width - playBtn.width
                 playBtn.y = y + (height - 20) / 2
                 playBtn.render(context, mouseX, mouseY, deltaTicks)
-                currentRight -= (btnWidth + gap)
-
-                playerSlider.x = currentRight - sliderWidth
-                playerSlider.y = y + (height - 20) / 2
-                playerSlider.width = sliderWidth
-                playerSlider.render(context, mouseX, mouseY, deltaTicks)
-                currentRight -= (sliderWidth + gap)
-
-                localSlider.x = currentRight - sliderWidth
-                localSlider.y = y + (height - 20) / 2
-                localSlider.width = sliderWidth
-                localSlider.render(context, mouseX, mouseY, deltaTicks)
             }
 
             override fun mouseClicked(click: Click, doubled: Boolean): Boolean {
-                focusedWidget = null
+                if (favBtn.mouseClicked(click, doubled)) return true
+                if (playBtn.mouseClicked(click, doubled)) return true
 
-                if (playBtn.isMouseOver(click.x, click.y)) {
-                    if (playBtn.mouseClicked(click, doubled)) {
-                        return true
-                    }
-                }
-
-                if (localSlider.isMouseOver(click.x, click.y)) {
-                    if (localSlider.mouseClicked(click, doubled)) {
-                        focusedWidget = localSlider
-                        return true
-                    }
-                }
-
-                if (playerSlider.isMouseOver(click.x, click.y)) {
-                    if (playerSlider.mouseClicked(click, doubled)) {
-                        focusedWidget = playerSlider
-                        return true
-                    }
-                }
-
-                return false
+                selectSound(file)
+                return true
             }
 
-            override fun mouseReleased(click: Click): Boolean {
-                if (focusedWidget != null) {
-                    val result = focusedWidget!!.mouseReleased(click)
-                    focusedWidget = null
-                    return result
-                }
-                return false
-            }
-
-            override fun mouseDragged(click: Click, offsetX: Double, offsetY: Double): Boolean {
-                if (focusedWidget != null) {
-                    return focusedWidget!!.mouseDragged(click, offsetX, offsetY)
-                }
-                return false
-            }
-
-            override fun children(): List<Element> = elements
-            override fun selectableChildren(): List<Selectable> = selectables
-        }
-    }
-
-    class SimpleVolumeSlider(
-        x: Int, y: Int, width: Int, height: Int,
-        private val prefix: Text,
-        initialValue: Float,
-        private val onChange: (Float) -> Unit
-    ) : SliderWidget(x, y, width, height, Text.empty(), initialValue.toDouble()) {
-
-        init {
-            updateMessage()
-        }
-
-        override fun updateMessage() {
-            val percent = (value * 100).roundToInt()
-            message = Text.literal("").append(prefix).append(": ${percent}%")
-        }
-
-        override fun applyValue() {
-            onChange(value.toFloat())
+            override fun children() = elements
+            override fun selectableChildren() = selectables
         }
     }
 }

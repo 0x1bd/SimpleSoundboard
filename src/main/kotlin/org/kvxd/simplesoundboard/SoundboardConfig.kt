@@ -11,22 +11,34 @@ object SoundboardConfig {
 
     var playLocally: Boolean = true
     var playWhileMuted: Boolean = false
-    var soundVolumes: MutableMap<String, SoundVolume> = mutableMapOf()
 
-    data class SoundVolume(var local: Float = 1.0f, var player: Float = 1.0f)
+    var sounds: MutableMap<String, SoundData> = mutableMapOf()
+
+    data class SoundData(
+        var localVolume: Float = 1.0f,
+        var playerVolume: Float = 1.0f,
+        var favorite: Boolean = false,
+        var keybind: Int = -1
+    )
 
     init {
         load()
     }
 
-    fun getVolume(filename: String): SoundVolume {
-        return soundVolumes.computeIfAbsent(filename) { SoundVolume() }
+    operator fun get(filename: String): SoundData {
+        return sounds.computeIfAbsent(filename) { SoundData() }
     }
 
     fun save() {
         try {
             if (!configFile.parentFile.exists()) configFile.parentFile.mkdirs()
-            val json = gson.toJson(ConfigData(playLocally, playWhileMuted, soundVolumes))
+            val json = gson.toJson(
+                ConfigData(
+                    playLocally,
+                    playWhileMuted,
+                    sounds
+                )
+            )
             configFile.writeText(json)
         } catch (e: Exception) {
             e.printStackTrace()
@@ -39,7 +51,7 @@ object SoundboardConfig {
             val data = gson.fromJson(configFile.readText(), ConfigData::class.java)
             playLocally = data.playLocally
             playWhileMuted = data.playWhileMuted
-            soundVolumes = data.soundVolumes
+            sounds = data.sounds ?: mutableMapOf()
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -48,6 +60,6 @@ object SoundboardConfig {
     private data class ConfigData(
         val playLocally: Boolean,
         val playWhileMuted: Boolean,
-        val soundVolumes: MutableMap<String, SoundVolume>
+        val sounds: MutableMap<String, SoundData>?
     )
 }
