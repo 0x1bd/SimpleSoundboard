@@ -18,8 +18,6 @@ class SimpleSoundboardClient : ClientModInitializer {
 
         const val MOD_ID = "simplesoundboard"
 
-        val KEY_CATEGORY: KeyBinding.Category = KeyBinding.Category.create(Identifier.of(MOD_ID, "main"))
-
         lateinit var OPEN_GUI_KEY: KeyBinding
 
         private val pressedKeys = mutableSetOf<Int>()
@@ -30,7 +28,7 @@ class SimpleSoundboardClient : ClientModInitializer {
             KeyBinding(
                 "key.$MOD_ID.open",
                 GLFW.GLFW_KEY_J,
-                KEY_CATEGORY
+                "key.category.simplesoundboard.main"
             )
         )
 
@@ -58,7 +56,7 @@ class SimpleSoundboardClient : ClientModInitializer {
             val keyCode = data.keybind
             if (keyCode <= 0 || keyCode == GLFW.GLFW_KEY_ESCAPE) continue
 
-            val isPressed = InputUtil.isKeyPressed(client.window, keyCode)
+            val isPressed = InputUtil.isKeyPressed(client.window.handle, keyCode)
             val wasPressed = pressedKeys.contains(keyCode)
 
             if (isPressed && !wasPressed) {
