@@ -59,7 +59,7 @@ object SoundboardAudioSystem {
 
         val mixedAudioPlayer = ShortArray(FRAME_SIZE)
         val mixedAudioLocal = ShortArray(FRAME_SIZE)
-        val playLocally = SoundboardConfig.data.playWhileMuted
+        val playLocally = SoundboardConfig.data.playLocally
         var hasAudio = false
 
         val iterator = activeSounds.iterator()
