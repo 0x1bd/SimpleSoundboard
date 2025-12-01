@@ -4,7 +4,7 @@ import net.minecraft.client.gui.screen.Screen
 import net.minecraft.client.gui.widget.ButtonWidget
 import net.minecraft.client.gui.widget.CyclingButtonWidget
 import net.minecraft.text.Text
-import org.kvxd.simplesoundboard.SoundboardConfig
+import org.kvxd.simplesoundboard.config.SoundboardConfig
 
 class SoundboardConfigScreen(private val parent: Screen?) : Screen(Text.literal("Soundboard Configuration")) {
 
@@ -16,17 +16,17 @@ class SoundboardConfigScreen(private val parent: Screen?) : Screen(Text.literal(
         )
 
         addDrawableChild(
-            CyclingButtonWidget.onOffBuilder(SoundboardConfig.playLocally)
+            CyclingButtonWidget.onOffBuilder(SoundboardConfig.data.playLocally)
                 .build(width / 2 - 100, 50, 200, 20, Text.literal("Play Locally")) { _, value ->
-                    SoundboardConfig.playLocally = value
+                    SoundboardConfig.data.playLocally = value
                     SoundboardConfig.save()
                 }
         )
 
         addDrawableChild(
-            CyclingButtonWidget.onOffBuilder(SoundboardConfig.playWhileMuted)
+            CyclingButtonWidget.onOffBuilder(SoundboardConfig.data.playWhileMuted)
                 .build(width / 2 - 100, 75, 200, 20, Text.literal("Play While Muted")) { _, value ->
-                    SoundboardConfig.playWhileMuted = value
+                    SoundboardConfig.data.playWhileMuted = value
                     SoundboardConfig.save()
                 }
         )

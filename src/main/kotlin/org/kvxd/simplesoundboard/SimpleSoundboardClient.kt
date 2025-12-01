@@ -9,6 +9,7 @@ import net.minecraft.client.MinecraftClient
 import net.minecraft.client.option.KeyBinding
 import net.minecraft.client.util.InputUtil
 import net.minecraft.util.Identifier
+import org.kvxd.simplesoundboard.config.SoundboardConfig
 import org.kvxd.simplesoundboard.gui.SoundboardScreen
 import org.lwjgl.glfw.GLFW
 import java.io.File
@@ -58,7 +59,7 @@ class SimpleSoundboardClient : ClientModInitializer {
     }
 
     private fun handleSoundKeybinds(client: MinecraftClient) {
-        for ((filename, data) in SoundboardConfig.sounds) {
+        for ((filename, data) in SoundboardConfig.data.sounds) {
             val keyCode = data.keybind
             if (keyCode <= 0 || keyCode == GLFW.GLFW_KEY_ESCAPE) continue
 

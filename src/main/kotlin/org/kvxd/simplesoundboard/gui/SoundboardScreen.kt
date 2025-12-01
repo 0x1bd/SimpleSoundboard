@@ -17,7 +17,7 @@ import net.minecraft.util.Formatting
 import net.minecraft.util.Util
 import org.kvxd.simplesoundboard.SimpleSoundboardClient
 import org.kvxd.simplesoundboard.SoundboardAudioSystem
-import org.kvxd.simplesoundboard.SoundboardConfig
+import org.kvxd.simplesoundboard.config.SoundboardConfig
 import org.lwjgl.glfw.GLFW
 import java.awt.Color
 import java.io.File

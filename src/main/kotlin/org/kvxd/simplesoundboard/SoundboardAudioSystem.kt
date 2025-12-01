@@ -7,6 +7,7 @@ import de.maxhenkel.voicechat.api.events.ClientVoicechatConnectionEvent
 import de.maxhenkel.voicechat.api.events.MergeClientSoundEvent
 import net.minecraft.client.MinecraftClient
 import net.minecraft.text.Text
+import org.kvxd.simplesoundboard.config.SoundboardConfig
 import java.io.BufferedInputStream
 import java.io.File
 import java.nio.file.Files
@@ -49,7 +50,7 @@ object SoundboardAudioSystem {
     fun onMergeSound(event: MergeClientSoundEvent) {
         val api = clientApi ?: return
 
-        if (api.isDisabled || (api.isMuted && !SoundboardConfig.playWhileMuted)) {
+        if (api.isDisabled || (api.isMuted && !SoundboardConfig.data.playWhileMuted)) {
             if (activeSounds.isNotEmpty()) activeSounds.clear()
             return
         }
@@ -58,7 +59,7 @@ object SoundboardAudioSystem {
 
         val mixedAudioPlayer = ShortArray(FRAME_SIZE)
         val mixedAudioLocal = ShortArray(FRAME_SIZE)
-        val playLocally = SoundboardConfig.playLocally
+        val playLocally = SoundboardConfig.data.playWhileMuted
         var hasAudio = false
 
         val iterator = activeSounds.iterator()
@@ -113,7 +114,7 @@ object SoundboardAudioSystem {
             return
         }
 
-        if (api.isMuted && !SoundboardConfig.playWhileMuted) {
+        if (api.isMuted && !SoundboardConfig.data.playWhileMuted) {
             client.player?.sendMessage(Text.of("§cCannot play soundboard while muted!"), true)
             return
         }
