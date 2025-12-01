@@ -4,6 +4,7 @@ import net.fabricmc.api.ClientModInitializer
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper
+import net.fabricmc.loader.api.FabricLoader
 import net.minecraft.client.MinecraftClient
 import net.minecraft.client.option.KeyBinding
 import net.minecraft.client.util.InputUtil
@@ -23,6 +24,8 @@ class SimpleSoundboardClient : ClientModInitializer {
         lateinit var OPEN_GUI_KEY: KeyBinding
 
         private val pressedKeys = mutableSetOf<Int>()
+
+        val soundDir = File(FabricLoader.getInstance().gameDir.toFile(), "soundboard")
     }
 
     override fun onInitializeClient() {
@@ -33,6 +36,9 @@ class SimpleSoundboardClient : ClientModInitializer {
                 KEY_CATEGORY
             )
         )
+
+        if (!soundDir.exists())
+            soundDir.mkdirs()
 
         ClientTickEvents.END_CLIENT_TICK.register { client ->
             if (client.player == null) return@register
@@ -52,8 +58,6 @@ class SimpleSoundboardClient : ClientModInitializer {
     }
 
     private fun handleSoundKeybinds(client: MinecraftClient) {
-        val soundDir = File(client.runDirectory, "soundboard")
-
         for ((filename, data) in SoundboardConfig.sounds) {
             val keyCode = data.keybind
             if (keyCode <= 0 || keyCode == GLFW.GLFW_KEY_ESCAPE) continue

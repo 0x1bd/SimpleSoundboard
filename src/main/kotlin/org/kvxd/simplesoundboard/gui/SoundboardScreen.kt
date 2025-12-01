@@ -15,6 +15,7 @@ import net.minecraft.client.util.InputUtil
 import net.minecraft.text.Text
 import net.minecraft.util.Formatting
 import net.minecraft.util.Util
+import org.kvxd.simplesoundboard.SimpleSoundboardClient
 import org.kvxd.simplesoundboard.SoundboardAudioSystem
 import org.kvxd.simplesoundboard.SoundboardConfig
 import org.lwjgl.glfw.GLFW
@@ -26,7 +27,6 @@ class SoundboardScreen(
 ) : Screen(Text.literal("Soundboard")) {
 
     private val mc = MinecraftClient.getInstance()
-    private val soundDir = File(mc.runDirectory, "soundboard")
 
     private val bottomPaneHeight = 65
     private val headerHeight = 55
@@ -44,8 +44,6 @@ class SoundboardScreen(
     private var results: List<File> = emptyList()
 
     override fun init() {
-        if (!soundDir.exists()) soundDir.mkdirs()
-
         val padding = 10
         val searchFieldWidth = width - 2 * padding
         val contentWidth = width - 2 * padding
@@ -131,7 +129,7 @@ class SoundboardScreen(
 
         addDrawableChild(
             ButtonWidget.builder(Text.literal("Folder")) {
-                Util.getOperatingSystem().open(soundDir)
+                Util.getOperatingSystem().open(SimpleSoundboardClient.soundDir)
             }.size(actionButtonWidth, actionButtonHeight)
                 .position(currentX, actionsY).build()
         )
@@ -147,7 +145,7 @@ class SoundboardScreen(
 
     private fun scanSounds() {
         val query = queryField.text.trim().lowercase()
-        val allFiles = soundDir.listFiles { _, name -> name.endsWith(".mp3") } ?: emptyArray()
+        val allFiles = SimpleSoundboardClient.soundDir.listFiles { _, name -> name.endsWith(".mp3") } ?: emptyArray()
 
         results = allFiles.filter { it.name.lowercase().contains(query) }
             .sortedWith(compareByDescending<File> { SoundboardConfig[it.name].favorite }
