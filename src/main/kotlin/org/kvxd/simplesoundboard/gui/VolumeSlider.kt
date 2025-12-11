@@ -24,23 +24,6 @@ class VolumeSlider(
         applyValue()
     }
 
-    override fun renderWidget(context: DrawContext, mouseX: Int, mouseY: Int, delta: Float) {
-        super.renderWidget(context, mouseX, mouseY, delta)
-
-        if (this.active) return
-
-        val tr = MinecraftClient.getInstance().textRenderer
-
-        val drawText = Text.literal("").append(prefix).append(": None")
-
-        val textWidth = tr.getWidth(drawText)
-        val textX = this.x + (this.width - textWidth) / 2
-
-        val textY = this.y + (this.height - tr.fontHeight) / 2 + 1
-
-        context.drawText(tr, drawText, textX, textY, Color(160, 160, 160).rgb, false)
-    }
-
     override fun updateMessage() {
         val percent = (value * 100).roundToInt()
         message = Text.literal("").append(prefix).append(": ${percent}%")
