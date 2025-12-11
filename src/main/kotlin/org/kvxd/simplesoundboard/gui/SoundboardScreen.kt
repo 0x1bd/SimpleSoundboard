@@ -108,7 +108,7 @@ class SoundboardScreen(
         val buttonSpacing = 5
         val actionsY = 45
 
-        val totalActionWidth = (actionButtonWidth * 4) + (buttonSpacing * 3)
+        val totalActionWidth = (actionButtonWidth * 5) + (buttonSpacing * 4)
         var currentX = width / 2 - totalActionWidth / 2
 
         addDrawableChild(
@@ -138,6 +138,14 @@ class SoundboardScreen(
         addDrawableChild(
             ButtonWidget.builder(Text.literal("Config")) {
                 mc.setScreen(SoundboardConfigScreen(this))
+            }.size(actionButtonWidth, actionButtonHeight)
+                .position(currentX, actionsY).build()
+        )
+        currentX += actionButtonWidth + buttonSpacing
+
+        addDrawableChild(
+            ButtonWidget.builder(Text.literal("YouTube")) {
+                mc.setScreen(YtDlpScreen(this))
             }.size(actionButtonWidth, actionButtonHeight)
                 .position(currentX, actionsY).build()
         )

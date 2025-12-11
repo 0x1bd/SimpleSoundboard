@@ -27,6 +27,7 @@ class SimpleSoundboardClient : ClientModInitializer {
         private val pressedKeys = mutableSetOf<Int>()
 
         val soundDir = File(FabricLoader.getInstance().gameDir.toFile(), "soundboard")
+        val modDir = File(FabricLoader.getInstance().gameDir.toFile(), "soundboard")
     }
 
     override fun onInitializeClient() {
@@ -40,6 +41,9 @@ class SimpleSoundboardClient : ClientModInitializer {
 
         if (!soundDir.exists())
             soundDir.mkdirs()
+
+        if (!modDir.exists())
+            modDir.mkdirs()
 
         ClientTickEvents.END_CLIENT_TICK.register { client ->
             if (client.player == null) return@register
