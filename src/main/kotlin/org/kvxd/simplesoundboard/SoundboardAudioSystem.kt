@@ -5,8 +5,8 @@ import de.maxhenkel.voicechat.api.VoicechatClientApi
 import de.maxhenkel.voicechat.api.audiochannel.ClientStaticAudioChannel
 import de.maxhenkel.voicechat.api.events.ClientVoicechatConnectionEvent
 import de.maxhenkel.voicechat.api.events.MergeClientSoundEvent
-import net.minecraft.client.MinecraftClient
-import net.minecraft.text.Text
+import net.minecraft.client.Minecraft
+import net.minecraft.network.chat.Component
 import org.kvxd.simplesoundboard.config.SoundboardConfig
 import java.io.BufferedInputStream
 import java.io.File
@@ -106,16 +106,16 @@ object SoundboardAudioSystem {
     }
 
     fun playFile(file: File, localVol: Float, playerVol: Float) {
-        val client = MinecraftClient.getInstance()
+        val client = Minecraft.getInstance()
         val api = clientApi
 
         if (api == null) {
-            client.player?.sendMessage(Text.of("§cVoice chat not connected!"), true)
+            client.player?.displayClientMessage(Component.nullToEmpty("§cVoice chat not connected!"), true)
             return
         }
 
         if (api.isMuted && !SoundboardConfig.data.playWhileMuted) {
-            client.player?.sendMessage(Text.of("§cCannot play soundboard while muted!"), true)
+            client.player?.displayClientMessage(Component.nullToEmpty("§cCannot play soundboard while muted!"), true)
             return
         }
 
@@ -126,7 +126,7 @@ object SoundboardAudioSystem {
                     activeSounds.add(PlayingSound(file.name, pcmData, localVol, playerVol))
                 } else {
                     client.execute {
-                        client.player?.sendMessage(Text.of("§cFailed to decode: ${file.name}"), false)
+                        client.player?.displayClientMessage(Component.nullToEmpty("§cFailed to decode: ${file.name}"), false)
                     }
                 }
             } catch (e: Exception) {

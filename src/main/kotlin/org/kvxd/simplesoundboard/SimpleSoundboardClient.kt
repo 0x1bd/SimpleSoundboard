@@ -5,10 +5,10 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper
 import net.fabricmc.loader.api.FabricLoader
-import net.minecraft.client.MinecraftClient
-import net.minecraft.client.option.KeyBinding
-import net.minecraft.client.util.InputUtil
-import net.minecraft.util.Identifier
+import net.minecraft.client.Minecraft
+import net.minecraft.client.KeyMapping
+import com.mojang.blaze3d.platform.InputConstants
+import net.minecraft.resources.Identifier
 import org.kvxd.simplesoundboard.config.SoundboardConfig
 import org.kvxd.simplesoundboard.gui.SoundboardScreen
 import org.lwjgl.glfw.GLFW
@@ -20,9 +20,9 @@ class SimpleSoundboardClient : ClientModInitializer {
 
         const val MOD_ID = "simplesoundboard"
 
-        val KEY_CATEGORY: KeyBinding.Category = KeyBinding.Category.create(Identifier.of(MOD_ID, "main"))
+        val KEY_CATEGORY: KeyMapping.Category = KeyMapping.Category.register(Identifier.fromNamespaceAndPath(MOD_ID, "main"))
 
-        lateinit var OPEN_GUI_KEY: KeyBinding
+        lateinit var OPEN_GUI_KEY: KeyMapping
 
         private val pressedKeys = mutableSetOf<Int>()
 
@@ -32,7 +32,7 @@ class SimpleSoundboardClient : ClientModInitializer {
 
     override fun onInitializeClient() {
         OPEN_GUI_KEY = KeyBindingHelper.registerKeyBinding(
-            KeyBinding(
+            KeyMapping(
                 "key.$MOD_ID.open",
                 GLFW.GLFW_KEY_J,
                 KEY_CATEGORY
@@ -48,11 +48,11 @@ class SimpleSoundboardClient : ClientModInitializer {
         ClientTickEvents.END_CLIENT_TICK.register { client ->
             if (client.player == null) return@register
 
-            if (OPEN_GUI_KEY.wasPressed()) {
+            if (OPEN_GUI_KEY.consumeClick()) {
                 client.setScreen(SoundboardScreen())
             }
 
-            if (client.currentScreen == null) {
+            if (client.screen == null) {
                 handleSoundKeybinds(client)
             }
         }
@@ -62,12 +62,12 @@ class SimpleSoundboardClient : ClientModInitializer {
         }
     }
 
-    private fun handleSoundKeybinds(client: MinecraftClient) {
+    private fun handleSoundKeybinds(client: Minecraft) {
         for ((filename, data) in SoundboardConfig.data.sounds) {
             val keyCode = data.keybind
             if (keyCode <= 0 || keyCode == GLFW.GLFW_KEY_ESCAPE) continue
 
-            val isPressed = InputUtil.isKeyPressed(client.window, keyCode)
+            val isPressed = InputConstants.isKeyDown(client.window, keyCode)
             val wasPressed = pressedKeys.contains(keyCode)
 
             if (isPressed && !wasPressed) {

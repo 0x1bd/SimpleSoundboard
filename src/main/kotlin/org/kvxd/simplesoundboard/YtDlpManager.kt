@@ -11,7 +11,7 @@ import java.util.concurrent.TimeUnit
 
 object YtDlpManager {
 
-    private val isWindows = Util.getOperatingSystem().getName().contains("windows", ignoreCase = true)
+    private val isWindows = Util.getPlatform().telemetryName().contains("windows", ignoreCase = true)
     private val binaryName = if (isWindows) "yt-dlp.exe" else "yt-dlp"
     private val downloadUrl = if (isWindows)
         "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe"

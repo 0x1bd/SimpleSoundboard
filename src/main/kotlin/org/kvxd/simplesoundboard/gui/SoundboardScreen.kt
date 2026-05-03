@@ -1,19 +1,19 @@
 package org.kvxd.simplesoundboard.gui
 
-import net.minecraft.client.MinecraftClient
-import net.minecraft.client.gui.Click
-import net.minecraft.client.gui.DrawContext
-import net.minecraft.client.gui.Element
-import net.minecraft.client.gui.Selectable
-import net.minecraft.client.gui.screen.Screen
-import net.minecraft.client.gui.widget.ButtonWidget
-import net.minecraft.client.gui.widget.ElementListWidget
-import net.minecraft.client.gui.widget.TextFieldWidget
-import net.minecraft.client.gui.widget.TextWidget
-import net.minecraft.client.input.KeyInput
-import net.minecraft.client.util.InputUtil
-import net.minecraft.text.Text
-import net.minecraft.util.Formatting
+import net.minecraft.client.Minecraft
+import net.minecraft.client.input.MouseButtonEvent
+import net.minecraft.client.gui.GuiGraphics
+import net.minecraft.client.gui.components.events.GuiEventListener
+import net.minecraft.client.gui.narration.NarratableEntry
+import net.minecraft.client.gui.screens.Screen
+import net.minecraft.client.gui.components.Button
+import net.minecraft.client.gui.components.ContainerObjectSelectionList
+import net.minecraft.client.gui.components.EditBox
+import net.minecraft.client.gui.components.StringWidget
+import net.minecraft.client.input.KeyEvent
+import com.mojang.blaze3d.platform.InputConstants
+import net.minecraft.network.chat.Component
+import net.minecraft.ChatFormatting
 import net.minecraft.util.Util
 import org.kvxd.simplesoundboard.SimpleSoundboardClient
 import org.kvxd.simplesoundboard.SoundboardAudioSystem
@@ -24,20 +24,20 @@ import java.io.File
 
 class SoundboardScreen(
     private val parent: Screen? = null
-) : Screen(Text.literal("Soundboard")) {
+) : Screen(Component.literal("Soundboard")) {
 
-    private val mc = MinecraftClient.getInstance()
+    private val mc = Minecraft.getInstance()
 
     private val bottomPaneHeight = 65
     private val headerHeight = 55
 
-    private lateinit var queryField: TextFieldWidget
+    private lateinit var queryField: EditBox
     private lateinit var resultsList: ResultListWidget
 
     private lateinit var detailLocalSlider: VolumeSlider
     private lateinit var detailPlayerSlider: VolumeSlider
-    private lateinit var detailBindBtn: ButtonWidget
-    private lateinit var detailLabel: TextWidget
+    private lateinit var detailBindBtn: Button
+    private lateinit var detailLabel: StringWidget
 
     private var selectedFile: File? = null
     private var isBinding = false
@@ -48,46 +48,46 @@ class SoundboardScreen(
         val searchFieldWidth = width - 2 * padding
         val contentWidth = width - 2 * padding
 
-        val titleWidget = TextWidget(Text.literal("Soundboard").formatted(Formatting.BOLD), textRenderer)
+        val titleWidget = StringWidget(Component.literal("Soundboard").withStyle(ChatFormatting.BOLD), font)
         titleWidget.setPosition(width / 2 - titleWidget.width / 2, 5)
-        addDrawableChild(titleWidget)
+        addRenderableWidget(titleWidget)
 
-        queryField = TextFieldWidget(textRenderer, padding, 20, searchFieldWidth, 20, Text.literal("Search"))
-        queryField.setChangedListener { scanSounds() }
-        addDrawableChild(queryField)
+        queryField = EditBox(font, padding, 20, searchFieldWidth, 20, Component.literal("Search"))
+        queryField.setResponder { scanSounds() }
+        addRenderableWidget(queryField)
 
         setupTopButtons()
 
         val detailsY = height - bottomPaneHeight + 5
 
-        detailLabel = TextWidget(Text.literal("Select a sound to edit settings"), textRenderer)
+        detailLabel = StringWidget(Component.literal("Select a sound to edit settings"), font)
         detailLabel.setPosition(width / 2 - detailLabel.width / 2, detailsY)
-        addDrawableChild(detailLabel)
+        addRenderableWidget(detailLabel)
 
-        detailLocalSlider = VolumeSlider(width / 2 - 155, detailsY + 15, 100, 20, Text.literal("Local"), 1.0f) {
+        detailLocalSlider = VolumeSlider(width / 2 - 155, detailsY + 15, 100, 20, Component.literal("Local"), 1.0f) {
             updateSelectedVolume(local = it)
         }
         detailLocalSlider.active = false
-        addDrawableChild(detailLocalSlider)
+        addRenderableWidget(detailLocalSlider)
 
-        detailPlayerSlider = VolumeSlider(width / 2 - 50, detailsY + 15, 100, 20, Text.literal("Player"), 1.0f) {
+        detailPlayerSlider = VolumeSlider(width / 2 - 50, detailsY + 15, 100, 20, Component.literal("Player"), 1.0f) {
             updateSelectedVolume(player = it)
         }
         detailPlayerSlider.active = false
-        addDrawableChild(detailPlayerSlider)
+        addRenderableWidget(detailPlayerSlider)
 
-        detailBindBtn = ButtonWidget.builder(Text.literal("Keybind: None")) {
+        detailBindBtn = Button.builder(Component.literal("Keybind: None")) {
             if (selectedFile != null) {
                 isBinding = true
-                it.message = Text.literal("> Press Key <").formatted(Formatting.YELLOW)
+                it.message = Component.literal("> Press Key <").withStyle(ChatFormatting.YELLOW)
             }
-        }.size(100, 20).position(width / 2 + 55, detailsY + 15).build()
+        }.size(100, 20).pos(width / 2 + 55, detailsY + 15).build()
         detailBindBtn.active = false
-        addDrawableChild(detailBindBtn)
+        addRenderableWidget(detailBindBtn)
 
-        addDrawableChild(ButtonWidget.builder(Text.translatable("gui.done")) { close() }
+        addRenderableWidget(Button.builder(Component.translatable("gui.done")) { onClose() }
             .size(150, 20)
-            .position(width / 2 - 75, height - 23)
+            .pos(width / 2 - 75, height - 23)
             .build())
 
         val listTop = headerHeight + 14
@@ -96,7 +96,7 @@ class SoundboardScreen(
 
         resultsList = ResultListWidget(mc, contentWidth, listBottom - listTop, listTop, itemHeight)
         resultsList.setX(padding)
-        addDrawableChild(resultsList)
+        addRenderableWidget(resultsList)
 
         scanSounds()
         setInitialFocus(queryField)
@@ -111,48 +111,48 @@ class SoundboardScreen(
         val totalActionWidth = (actionButtonWidth * 5) + (buttonSpacing * 4)
         var currentX = width / 2 - totalActionWidth / 2
 
-        addDrawableChild(
-            ButtonWidget.builder(Text.literal("Stop All").formatted(Formatting.RED)) {
+        addRenderableWidget(
+            Button.builder(Component.literal("Stop All").withStyle(ChatFormatting.RED)) {
                 SoundboardAudioSystem.stopAll()
             }.size(actionButtonWidth, actionButtonHeight)
-                .position(currentX, actionsY).build()
+                .pos(currentX, actionsY).build()
         )
         currentX += actionButtonWidth + buttonSpacing
 
-        addDrawableChild(
-            ButtonWidget.builder(Text.literal("Refresh")) {
+        addRenderableWidget(
+            Button.builder(Component.literal("Refresh")) {
                 scanSounds()
             }.size(actionButtonWidth, actionButtonHeight)
-                .position(currentX, actionsY).build()
+                .pos(currentX, actionsY).build()
         )
         currentX += actionButtonWidth + buttonSpacing
 
-        addDrawableChild(
-            ButtonWidget.builder(Text.literal("Folder")) {
-                Util.getOperatingSystem().open(SimpleSoundboardClient.soundDir)
+        addRenderableWidget(
+            Button.builder(Component.literal("Folder")) {
+                Util.getPlatform().openFile(SimpleSoundboardClient.soundDir)
             }.size(actionButtonWidth, actionButtonHeight)
-                .position(currentX, actionsY).build()
+                .pos(currentX, actionsY).build()
         )
         currentX += actionButtonWidth + buttonSpacing
 
-        addDrawableChild(
-            ButtonWidget.builder(Text.literal("Config")) {
+        addRenderableWidget(
+            Button.builder(Component.literal("Config")) {
                 mc.setScreen(SoundboardConfigScreen(this))
             }.size(actionButtonWidth, actionButtonHeight)
-                .position(currentX, actionsY).build()
+                .pos(currentX, actionsY).build()
         )
         currentX += actionButtonWidth + buttonSpacing
 
-        addDrawableChild(
-            ButtonWidget.builder(Text.literal("YouTube")) {
+        addRenderableWidget(
+            Button.builder(Component.literal("YouTube")) {
                 mc.setScreen(YtDlpScreen(this))
             }.size(actionButtonWidth, actionButtonHeight)
-                .position(currentX, actionsY).build()
+                .pos(currentX, actionsY).build()
         )
     }
 
     private fun scanSounds() {
-        val query = queryField.text.trim().lowercase()
+        val query = queryField.value.trim().lowercase()
         val allFiles = SimpleSoundboardClient.soundDir.listFiles { _, name -> name.endsWith(".mp3") } ?: emptyArray()
 
         results = allFiles.filter { it.name.lowercase().contains(query) }
@@ -171,18 +171,18 @@ class SoundboardScreen(
         isBinding = false
 
         if (file == null) {
-            detailLabel.message = Text.literal("Select a sound to edit settings").formatted(Formatting.GRAY)
-            detailLabel.x = width / 2 - textRenderer.getWidth(detailLabel.message) / 2
+            detailLabel.message = Component.literal("Select a sound to edit settings").withStyle(ChatFormatting.GRAY)
+            detailLabel.x = width / 2 - font.width(detailLabel.message) / 2
 
             detailLocalSlider.active = false
             detailPlayerSlider.active = false
             detailBindBtn.active = false
-            detailBindBtn.message = Text.literal("Keybind: -")
+            detailBindBtn.message = Component.literal("Keybind: -")
         } else {
             val data = SoundboardConfig[file.name]
 
-            detailLabel.message = Text.literal("Settings: ${file.name}").formatted(Formatting.YELLOW)
-            detailLabel.x = width / 2 - textRenderer.getWidth(detailLabel.message) / 2
+            detailLabel.message = Component.literal("Settings: ${file.name}").withStyle(ChatFormatting.YELLOW)
+            detailLabel.x = width / 2 - font.width(detailLabel.message) / 2
 
             detailLocalSlider.active = true
             detailLocalSlider.setValue(data.localVolume)
@@ -209,26 +209,26 @@ class SoundboardScreen(
     private fun updateBindButtonText(keyCode: Int) {
         val keyName =
             if (keyCode > 0)
-                InputUtil.fromKeyCode(KeyInput(keyCode, 0, 0)).localizedText
+                InputConstants.getKey(KeyEvent(keyCode, 0, 0)).displayName
             else
-                Text.literal("None")
+                Component.literal("None")
 
-        detailBindBtn.message = Text.literal("Keybind: ").append(keyName)
+        detailBindBtn.message = Component.literal("Keybind: ").append(keyName)
     }
 
-    override fun render(context: DrawContext, mouseX: Int, mouseY: Int, delta: Float) {
+    override fun render(context: GuiGraphics, mouseX: Int, mouseY: Int, delta: Float) {
         super.render(context, mouseX, mouseY, delta)
 
         val lineY = height - bottomPaneHeight
         context.fill(10, lineY, width - 10, lineY + 1, Color.GRAY.rgb)
     }
 
-    override fun close() {
+    override fun onClose() {
         SoundboardConfig.save()
         mc.setScreen(parent)
     }
 
-    override fun keyPressed(input: KeyInput): Boolean {
+    override fun keyPressed(input: KeyEvent): Boolean {
         if (isBinding && selectedFile != null) {
             val file = selectedFile!!.name
             val data = SoundboardConfig[file]
@@ -247,7 +247,7 @@ class SoundboardScreen(
         }
 
         if (input.key == GLFW.GLFW_KEY_ESCAPE) {
-            close()
+            onClose()
             return true
         }
 
@@ -255,37 +255,37 @@ class SoundboardScreen(
     }
 
     private inner class ResultListWidget(
-        client: MinecraftClient, width: Int, height: Int, y: Int, itemHeight: Int
-    ) : ElementListWidget<ResultListWidget.Entry>(client, width, height, y, itemHeight) {
+        client: Minecraft, width: Int, height: Int, y: Int, itemHeight: Int
+    ) : ContainerObjectSelectionList<ResultListWidget.Entry>(client, width, height, y, itemHeight) {
 
         fun setResults(results: List<File>) {
             clearEntries()
             results.forEach { addEntry(Entry(it)) }
-            scrollY = 0.0
+            setScrollAmount(0.0)
         }
 
         override fun getRowWidth(): Int = width - 20
 
-        inner class Entry(private val file: File) : ElementListWidget.Entry<Entry>() {
+        inner class Entry(private val file: File) : ContainerObjectSelectionList.Entry<Entry>() {
 
-            private val playBtn: ButtonWidget
-            private val favBtn: ButtonWidget
-            private val elements = mutableListOf<Element>()
-            private val selectables = mutableListOf<Selectable>()
+            private val playBtn: Button
+            private val favBtn: Button
+            private val elements = mutableListOf<GuiEventListener>()
+            private val selectables = mutableListOf<NarratableEntry>()
 
             init {
                 val data = SoundboardConfig[file.name]
 
-                favBtn = ButtonWidget.builder(
-                    Text.literal(if (data.favorite) "★" else "☆")
-                        .formatted(if (data.favorite) Formatting.GOLD else Formatting.GRAY)
+                favBtn = Button.builder(
+                    Component.literal(if (data.favorite) "★" else "☆")
+                        .withStyle(if (data.favorite) ChatFormatting.GOLD else ChatFormatting.GRAY)
                 ) {
                     data.favorite = !data.favorite
                     SoundboardConfig.save()
                     scanSounds()
                 }.size(20, 20).build()
 
-                playBtn = ButtonWidget.builder(Text.literal("Play")) {
+                playBtn = Button.builder(Component.literal("Play")) {
                     if (SoundboardAudioSystem.isPlaying(file.name)) {
                         SoundboardAudioSystem.stop(file.name)
                     } else {
@@ -300,23 +300,23 @@ class SoundboardScreen(
                 selectables.add(playBtn)
             }
 
-            override fun render(context: DrawContext, mouseX: Int, mouseY: Int, hovered: Boolean, deltaTicks: Float) {
+            override fun renderContent(context: GuiGraphics, mouseX: Int, mouseY: Int, hovered: Boolean, deltaTicks: Float) {
                 val isPlaying = SoundboardAudioSystem.isPlaying(file.name)
                 playBtn.message =
-                    if (isPlaying) Text.literal("Stop").formatted(Formatting.RED) else Text.literal("Play")
+                    if (isPlaying) Component.literal("Stop").withStyle(ChatFormatting.RED) else Component.literal("Play")
 
                 if (selectedFile?.name == file.name) {
                     context.fill(x, y + 1, x + width, y + height - 1, 0x33FFFFFF)
                 }
 
-                val textY = y + (height - textRenderer.fontHeight) / 2 + 1
+                val textY = y + (height - font.lineHeight) / 2 + 1
                 var nameText = file.nameWithoutExtension
 
-                if (textRenderer.getWidth(nameText) > width - 70) {
-                    nameText = textRenderer.trimToWidth(nameText, width - 75) + "..."
+                if (font.width(nameText) > width - 70) {
+                    nameText = font.plainSubstrByWidth(nameText, width - 75) + "..."
                 }
 
-                context.drawText(textRenderer, nameText, x + 25, textY, Color.WHITE.rgb, true)
+                context.drawString(font, nameText, x + 25, textY, Color.WHITE.rgb, true)
 
                 favBtn.x = x
                 favBtn.y = y + (height - 20) / 2
@@ -327,7 +327,7 @@ class SoundboardScreen(
                 playBtn.render(context, mouseX, mouseY, deltaTicks)
             }
 
-            override fun mouseClicked(click: Click, doubled: Boolean): Boolean {
+            override fun mouseClicked(click: MouseButtonEvent, doubled: Boolean): Boolean {
                 if (favBtn.mouseClicked(click, doubled)) return true
                 if (playBtn.mouseClicked(click, doubled)) return true
 
@@ -336,7 +336,7 @@ class SoundboardScreen(
             }
 
             override fun children() = elements
-            override fun selectableChildren() = selectables
+            override fun narratables() = selectables
         }
     }
 }

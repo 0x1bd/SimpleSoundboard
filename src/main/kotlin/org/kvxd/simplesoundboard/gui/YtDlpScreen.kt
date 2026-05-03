@@ -1,26 +1,26 @@
 package org.kvxd.simplesoundboard.gui
 
-import net.minecraft.client.gui.DrawContext
-import net.minecraft.client.gui.screen.Screen
-import net.minecraft.client.gui.widget.ButtonWidget
-import net.minecraft.client.gui.widget.CyclingButtonWidget
-import net.minecraft.client.gui.widget.TextFieldWidget
-import net.minecraft.client.gui.widget.TextWidget
-import net.minecraft.text.Text
-import net.minecraft.util.Formatting
+import net.minecraft.client.gui.GuiGraphics
+import net.minecraft.client.gui.screens.Screen
+import net.minecraft.client.gui.components.Button
+import net.minecraft.client.gui.components.CycleButton
+import net.minecraft.client.gui.components.EditBox
+import net.minecraft.client.gui.components.StringWidget
+import net.minecraft.network.chat.Component
+import net.minecraft.ChatFormatting
 import org.kvxd.simplesoundboard.SimpleSoundboardClient
 import org.kvxd.simplesoundboard.YtDlpManager
 import java.awt.Color
 import java.util.concurrent.CompletableFuture
 
-class YtDlpScreen(private val parent: Screen?) : Screen(Text.literal("YouTube Downloader")) {
+class YtDlpScreen(private val parent: Screen?) : Screen(Component.literal("YouTube Downloader")) {
 
-    private lateinit var urlField: TextFieldWidget
-    private lateinit var audioToggle: CyclingButtonWidget<Boolean>
-    private lateinit var downloadBtn: ButtonWidget
+    private lateinit var urlField: EditBox
+    private lateinit var audioToggle: CycleButton<Boolean>
+    private lateinit var downloadBtn: Button
 
-    private lateinit var statusLabel: TextWidget
-    private lateinit var logLabel: TextWidget
+    private lateinit var statusLabel: StringWidget
+    private lateinit var logLabel: StringWidget
 
     private var progress: Int = 0
 
@@ -29,44 +29,44 @@ class YtDlpScreen(private val parent: Screen?) : Screen(Text.literal("YouTube Do
         val contentWidth = width - padding * 2
 
         urlField =
-            TextFieldWidget(textRenderer, padding, 30, contentWidth, 20, Text.literal("Paste YouTube / media URL"))
-        addDrawableChild(urlField)
+            EditBox(font, padding, 30, contentWidth, 20, Component.literal("Paste YouTube / media URL"))
+        addRenderableWidget(urlField)
 
-        audioToggle = CyclingButtonWidget.onOffBuilder(true)
-            .build(padding, 60, 120, 20, Text.literal("Audio only")) { _, _ -> }
-        addDrawableChild(audioToggle)
+        audioToggle = CycleButton.onOffBuilder(true)
+            .create(padding, 60, 120, 20, Component.literal("Audio only")) { _, _ -> }
+        addRenderableWidget(audioToggle)
 
-        downloadBtn = ButtonWidget.builder(Text.literal("Download")) {
-            val url = urlField.text.trim()
+        downloadBtn = Button.builder(Component.literal("Download")) {
+            val url = urlField.value.trim()
             if (url.isBlank()) {
-                client?.player?.sendMessage(
-                    Text.literal("Please provide a URL").formatted(Formatting.RED),
+                minecraft?.player?.displayClientMessage(
+                    Component.literal("Please provide a URL").withStyle(ChatFormatting.RED),
                     false
                 )
                 return@builder
             }
             startDownload(url, audioToggle.value)
-        }.size(120, 20).position(width - padding - 120, 60).build()
-        addDrawableChild(downloadBtn)
+        }.size(120, 20).pos(width - padding - 120, 60).build()
+        addRenderableWidget(downloadBtn)
 
-        addDrawableChild(
-            ButtonWidget.builder(Text.translatable("gui.done")) { close() }
+        addRenderableWidget(
+            Button.builder(Component.translatable("gui.done")) { onClose() }
                 .size(150, 20)
-                .position(width / 2 - 75, height - 23)
+                .pos(width / 2 - 75, height - 23)
                 .build()
         )
 
-        statusLabel = TextWidget(Text.literal(" "), textRenderer)
+        statusLabel = StringWidget(Component.literal(" "), font)
         statusLabel.setPosition(padding, 90)
-        addDrawableChild(statusLabel)
+        addRenderableWidget(statusLabel)
 
-        logLabel = TextWidget(Text.literal(" "), textRenderer)
+        logLabel = StringWidget(Component.literal(" "), font)
         logLabel.setPosition(padding, 110)
-        addDrawableChild(logLabel)
+        addRenderableWidget(logLabel)
     }
 
     private fun startDownload(url: String, audioOnly: Boolean) {
-        statusLabel.message = Text.literal("Downloading…")
+        statusLabel.message = Component.literal("Downloading…")
         progress = 0
 
         CompletableFuture.runAsync {
@@ -76,30 +76,30 @@ class YtDlpScreen(private val parent: Screen?) : Screen(Text.literal("YouTube Do
             ) { line ->
                 val p = extractProgress(line)
 
-                client?.execute {
+                minecraft?.execute {
                     if (p != null) {
                         progress = p
                     }
 
-                    logLabel.message = Text.literal(line.take(80))
+                    logLabel.message = Component.literal(line.take(80))
                 }
             }
 
-            client?.execute {
+            minecraft?.execute {
                 if (result.first) {
-                    statusLabel.message = Text.literal("Finished!").formatted(Formatting.GREEN)
+                    statusLabel.message = Component.literal("Finished!").withStyle(ChatFormatting.GREEN)
                     progress = 100
                 } else {
-                    statusLabel.message = Text.literal("Failed").formatted(Formatting.RED)
+                    statusLabel.message = Component.literal("Failed").withStyle(ChatFormatting.RED)
                 }
             }
         }
     }
 
-    override fun render(context: DrawContext, mouseX: Int, mouseY: Int, delta: Float) {
+    override fun render(context: GuiGraphics, mouseX: Int, mouseY: Int, delta: Float) {
         super.render(context, mouseX, mouseY, delta)
 
-        context.drawCenteredTextWithShadow(textRenderer, title.asOrderedText(), width / 2, 8, 0xFFFFFF)
+        context.drawCenteredString(font, title.visualOrderText, width / 2, 8, 0xFFFFFF)
 
         val barX = 10
         val barY = 140
@@ -109,9 +109,9 @@ class YtDlpScreen(private val parent: Screen?) : Screen(Text.literal("YouTube Do
         context.fill(barX, barY, barX + barW, barY + 10, 0xFF555555.toInt())
         context.fill(barX, barY, barX + filled, barY + 10, 0xFF00AA00.toInt())
 
-        context.drawText(
-            textRenderer,
-            Text.literal("Save folder: ${SimpleSoundboardClient.soundDir.absolutePath}").asOrderedText(),
+        context.drawString(
+            font,
+            Component.literal("Save folder: ${SimpleSoundboardClient.soundDir.absolutePath}").visualOrderText,
             10,
             height - 40,
             Color.WHITE.rgb,
@@ -119,8 +119,8 @@ class YtDlpScreen(private val parent: Screen?) : Screen(Text.literal("YouTube Do
         )
     }
 
-    override fun close() {
-        client?.setScreen(parent)
+    override fun onClose() {
+        minecraft?.setScreen(parent)
     }
 
     private fun extractProgress(line: String): Int? {
