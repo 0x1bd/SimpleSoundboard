@@ -3,15 +3,14 @@ package org.kvxd.simplesoundboard
 import net.fabricmc.api.ClientModInitializer
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
-import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper
 import net.fabricmc.loader.api.FabricLoader
 import net.minecraft.client.Minecraft
 import net.minecraft.client.KeyMapping
 import com.mojang.blaze3d.platform.InputConstants
+import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper
 import net.minecraft.resources.Identifier
 import org.kvxd.simplesoundboard.config.SoundboardConfig
 import org.kvxd.simplesoundboard.gui.SoundboardScreen
-import org.lwjgl.glfw.GLFW
 import java.io.File
 
 class SimpleSoundboardClient : ClientModInitializer {
@@ -20,7 +19,8 @@ class SimpleSoundboardClient : ClientModInitializer {
 
         const val MOD_ID = "simplesoundboard"
 
-        val KEY_CATEGORY: KeyMapping.Category = KeyMapping.Category.register(Identifier.fromNamespaceAndPath(MOD_ID, "main"))
+        val KEY_CATEGORY: KeyMapping.Category =
+            KeyMapping.Category.register(Identifier.fromNamespaceAndPath(MOD_ID, "main"))
 
         lateinit var OPEN_GUI_KEY: KeyMapping
 
@@ -31,10 +31,11 @@ class SimpleSoundboardClient : ClientModInitializer {
     }
 
     override fun onInitializeClient() {
-        OPEN_GUI_KEY = KeyBindingHelper.registerKeyBinding(
+        OPEN_GUI_KEY = KeyMappingHelper.registerKeyMapping(
             KeyMapping(
                 "key.$MOD_ID.open",
-                GLFW.GLFW_KEY_J,
+                InputConstants.Type.KEYSYM,
+                InputConstants.KEY_J,
                 KEY_CATEGORY
             )
         )
@@ -65,7 +66,7 @@ class SimpleSoundboardClient : ClientModInitializer {
     private fun handleSoundKeybinds(client: Minecraft) {
         for ((filename, data) in SoundboardConfig.data.sounds) {
             val keyCode = data.keybind
-            if (keyCode <= 0 || keyCode == GLFW.GLFW_KEY_ESCAPE) continue
+            if (keyCode <= 0 || keyCode == InputConstants.KEY_ESCAPE) continue
 
             val isPressed = InputConstants.isKeyDown(client.window, keyCode)
             val wasPressed = pressedKeys.contains(keyCode)

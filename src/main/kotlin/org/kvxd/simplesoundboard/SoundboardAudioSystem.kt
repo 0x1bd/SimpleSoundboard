@@ -110,12 +110,12 @@ object SoundboardAudioSystem {
         val api = clientApi
 
         if (api == null) {
-            client.player?.displayClientMessage(Component.nullToEmpty("§cVoice chat not connected!"), true)
+            client.player?.sendSystemMessage(Component.nullToEmpty("§cVoice chat not connected!"))
             return
         }
 
         if (api.isMuted && !SoundboardConfig.data.playWhileMuted) {
-            client.player?.displayClientMessage(Component.nullToEmpty("§cCannot play soundboard while muted!"), true)
+            client.player?.sendSystemMessage(Component.nullToEmpty("§cCannot play soundboard while muted!"))
             return
         }
 
@@ -126,7 +126,7 @@ object SoundboardAudioSystem {
                     activeSounds.add(PlayingSound(file.name, pcmData, localVol, playerVol))
                 } else {
                     client.execute {
-                        client.player?.displayClientMessage(Component.nullToEmpty("§cFailed to decode: ${file.name}"), false)
+                        client.player?.sendSystemMessage(Component.nullToEmpty("§cFailed to decode: ${file.name}"))
                     }
                 }
             } catch (e: Exception) {

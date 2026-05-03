@@ -2,7 +2,6 @@ package org.kvxd.simplesoundboard.gui
 
 import net.minecraft.client.Minecraft
 import net.minecraft.client.input.MouseButtonEvent
-import net.minecraft.client.gui.GuiGraphics
 import net.minecraft.client.gui.components.events.GuiEventListener
 import net.minecraft.client.gui.narration.NarratableEntry
 import net.minecraft.client.gui.screens.Screen
@@ -14,11 +13,11 @@ import net.minecraft.client.input.KeyEvent
 import com.mojang.blaze3d.platform.InputConstants
 import net.minecraft.network.chat.Component
 import net.minecraft.ChatFormatting
+import net.minecraft.client.gui.GuiGraphicsExtractor
 import net.minecraft.util.Util
 import org.kvxd.simplesoundboard.SimpleSoundboardClient
 import org.kvxd.simplesoundboard.SoundboardAudioSystem
 import org.kvxd.simplesoundboard.config.SoundboardConfig
-import org.lwjgl.glfw.GLFW
 import java.awt.Color
 import java.io.File
 
@@ -216,11 +215,11 @@ class SoundboardScreen(
         detailBindBtn.message = Component.literal("Keybind: ").append(keyName)
     }
 
-    override fun render(context: GuiGraphics, mouseX: Int, mouseY: Int, delta: Float) {
-        super.render(context, mouseX, mouseY, delta)
+    override fun extractRenderState(graphics: GuiGraphicsExtractor, mouseX: Int, mouseY: Int, a: Float) {
+        super.extractRenderState(graphics, mouseX, mouseY, a)
 
         val lineY = height - bottomPaneHeight
-        context.fill(10, lineY, width - 10, lineY + 1, Color.GRAY.rgb)
+        graphics.fill(10, lineY, width - 10, lineY + 1, Color.GRAY.rgb)
     }
 
     override fun onClose() {
@@ -233,7 +232,7 @@ class SoundboardScreen(
             val file = selectedFile!!.name
             val data = SoundboardConfig[file]
 
-            if (input.key == GLFW.GLFW_KEY_ESCAPE) {
+            if (input.key == InputConstants.KEY_ESCAPE) {
                 data.keybind = -1
             } else {
                 data.keybind = input.key()
@@ -246,7 +245,7 @@ class SoundboardScreen(
             return true
         }
 
-        if (input.key == GLFW.GLFW_KEY_ESCAPE) {
+        if (input.key == InputConstants.KEY_ESCAPE) {
             onClose()
             return true
         }
@@ -300,13 +299,19 @@ class SoundboardScreen(
                 selectables.add(playBtn)
             }
 
-            override fun renderContent(context: GuiGraphics, mouseX: Int, mouseY: Int, hovered: Boolean, deltaTicks: Float) {
+            override fun extractContent(
+                graphics: GuiGraphicsExtractor,
+                mouseX: Int,
+                mouseY: Int,
+                hovered: Boolean,
+                a: Float
+            ) {
                 val isPlaying = SoundboardAudioSystem.isPlaying(file.name)
                 playBtn.message =
                     if (isPlaying) Component.literal("Stop").withStyle(ChatFormatting.RED) else Component.literal("Play")
 
                 if (selectedFile?.name == file.name) {
-                    context.fill(x, y + 1, x + width, y + height - 1, 0x33FFFFFF)
+                    graphics.fill(x, y + 1, x + width, y + height - 1, 0x33FFFFFF)
                 }
 
                 val textY = y + (height - font.lineHeight) / 2 + 1
@@ -316,15 +321,15 @@ class SoundboardScreen(
                     nameText = font.plainSubstrByWidth(nameText, width - 75) + "..."
                 }
 
-                context.drawString(font, nameText, x + 25, textY, Color.WHITE.rgb, true)
+                graphics.text(font, nameText, x + 25, textY, Color.WHITE.rgb, true)
 
                 favBtn.x = x
                 favBtn.y = y + (height - 20) / 2
-                favBtn.render(context, mouseX, mouseY, deltaTicks)
+                favBtn.extractRenderState(graphics, mouseX, mouseY, a)
 
                 playBtn.x = x + width - playBtn.width
                 playBtn.y = y + (height - 20) / 2
-                playBtn.render(context, mouseX, mouseY, deltaTicks)
+                playBtn.extractRenderState(graphics, mouseX, mouseY, a)
             }
 
             override fun mouseClicked(click: MouseButtonEvent, doubled: Boolean): Boolean {

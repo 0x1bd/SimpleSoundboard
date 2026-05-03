@@ -1,7 +1,7 @@
 package org.kvxd.simplesoundboard.gui
 
 import net.minecraft.client.Minecraft
-import net.minecraft.client.gui.GuiGraphics
+import net.minecraft.client.gui.GuiGraphicsExtractor
 import net.minecraft.client.gui.components.AbstractSliderButton
 import net.minecraft.network.chat.Component
 import java.awt.Color
@@ -24,8 +24,8 @@ class VolumeSlider(
         applyValue()
     }
 
-    override fun renderWidget(context: GuiGraphics, mouseX: Int, mouseY: Int, delta: Float) {
-        super.renderWidget(context, mouseX, mouseY, delta)
+    override fun extractWidgetRenderState(graphics: GuiGraphicsExtractor, mouseX: Int, mouseY: Int, a: Float) {
+        super.extractWidgetRenderState(graphics, mouseX, mouseY, a)
 
         if (this.active) return
 
@@ -38,7 +38,7 @@ class VolumeSlider(
 
         val textY = this.y + (this.height - tr.lineHeight) / 2 + 1
 
-        context.drawString(tr, drawText, textX, textY, Color(160, 160, 160).rgb, false)
+        graphics.text(tr, drawText, textX, textY, Color(160, 160, 160).rgb, false)
     }
 
     override fun updateMessage() {

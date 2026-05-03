@@ -1,6 +1,5 @@
 package org.kvxd.simplesoundboard.gui
 
-import net.minecraft.client.gui.GuiGraphics
 import net.minecraft.client.gui.screens.Screen
 import net.minecraft.client.gui.components.Button
 import net.minecraft.client.gui.components.CycleButton
@@ -8,6 +7,7 @@ import net.minecraft.client.gui.components.EditBox
 import net.minecraft.client.gui.components.StringWidget
 import net.minecraft.network.chat.Component
 import net.minecraft.ChatFormatting
+import net.minecraft.client.gui.GuiGraphicsExtractor
 import org.kvxd.simplesoundboard.SimpleSoundboardClient
 import org.kvxd.simplesoundboard.YtDlpManager
 import java.awt.Color
@@ -39,9 +39,8 @@ class YtDlpScreen(private val parent: Screen?) : Screen(Component.literal("YouTu
         downloadBtn = Button.builder(Component.literal("Download")) {
             val url = urlField.value.trim()
             if (url.isBlank()) {
-                minecraft?.player?.displayClientMessage(
-                    Component.literal("Please provide a URL").withStyle(ChatFormatting.RED),
-                    false
+                minecraft.player?.sendSystemMessage(
+                    Component.literal("Please provide a URL").withStyle(ChatFormatting.RED)
                 )
                 return@builder
             }
@@ -76,7 +75,7 @@ class YtDlpScreen(private val parent: Screen?) : Screen(Component.literal("YouTu
             ) { line ->
                 val p = extractProgress(line)
 
-                minecraft?.execute {
+                minecraft.execute {
                     if (p != null) {
                         progress = p
                     }
@@ -85,7 +84,7 @@ class YtDlpScreen(private val parent: Screen?) : Screen(Component.literal("YouTu
                 }
             }
 
-            minecraft?.execute {
+            minecraft.execute {
                 if (result.first) {
                     statusLabel.message = Component.literal("Finished!").withStyle(ChatFormatting.GREEN)
                     progress = 100
@@ -96,20 +95,20 @@ class YtDlpScreen(private val parent: Screen?) : Screen(Component.literal("YouTu
         }
     }
 
-    override fun render(context: GuiGraphics, mouseX: Int, mouseY: Int, delta: Float) {
-        super.render(context, mouseX, mouseY, delta)
+    override fun extractRenderState(graphics: GuiGraphicsExtractor, mouseX: Int, mouseY: Int, a: Float) {
+        super.extractRenderState(graphics, mouseX, mouseY, a)
 
-        context.drawCenteredString(font, title.visualOrderText, width / 2, 8, 0xFFFFFF)
+        graphics.centeredText(font, title.visualOrderText, width / 2, 8, 0xFFFFFF)
 
         val barX = 10
         val barY = 140
         val barW = width - 20
         val filled = (barW * (progress / 100f)).toInt()
 
-        context.fill(barX, barY, barX + barW, barY + 10, 0xFF555555.toInt())
-        context.fill(barX, barY, barX + filled, barY + 10, 0xFF00AA00.toInt())
+        graphics.fill(barX, barY, barX + barW, barY + 10, 0xFF555555.toInt())
+        graphics.fill(barX, barY, barX + filled, barY + 10, 0xFF00AA00.toInt())
 
-        context.drawString(
+        graphics.text(
             font,
             Component.literal("Save folder: ${SimpleSoundboardClient.soundDir.absolutePath}").visualOrderText,
             10,
@@ -120,7 +119,7 @@ class YtDlpScreen(private val parent: Screen?) : Screen(Component.literal("YouTu
     }
 
     override fun onClose() {
-        minecraft?.setScreen(parent)
+        minecraft.setScreen(parent)
     }
 
     private fun extractProgress(line: String): Int? {
