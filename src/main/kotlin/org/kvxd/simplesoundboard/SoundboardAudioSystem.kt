@@ -14,7 +14,9 @@ import java.nio.file.Files
 import java.util.*
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ConcurrentLinkedQueue
+import kotlin.math.floor
 import kotlin.math.min
+import kotlin.math.roundToInt
 
 object SoundboardAudioSystem {
 
@@ -23,6 +25,7 @@ object SoundboardAudioSystem {
     private var localAudioChannel: ClientStaticAudioChannel? = null
 
     private val activeSounds = ConcurrentLinkedQueue<PlayingSound>()
+    private const val VOICECHAT_SAMPLE_RATE = 48_000
     private const val FRAME_SIZE = 960
 
     fun initialize(api: VoicechatApi) {
@@ -164,7 +167,8 @@ object SoundboardAudioSystem {
                 val decoder = currentApi.createMp3Decoder(stream) ?: return null
                 val rawPcm = decoder.decode()
                 val format = decoder.audioFormat
-                if (format.channels == 2) stereoToMono(rawPcm) else rawPcm
+                val monoPcm = downmixToMono(rawPcm, format.channels)
+                resample(monoPcm, format.sampleRate, VOICECHAT_SAMPLE_RATE)
             }
         } catch (e: Exception) {
             System.err.println("Error decoding ${file.name}: ${e.message}")
@@ -172,14 +176,39 @@ object SoundboardAudioSystem {
         }
     }
 
-    private fun stereoToMono(stereo: ShortArray): ShortArray {
-        val mono = ShortArray(stereo.size / 2)
+    private fun downmixToMono(samples: ShortArray, channels: Int): ShortArray {
+        if (channels <= 1) return samples
+
+        val mono = ShortArray(samples.size / channels)
         for (i in mono.indices) {
-            val left = stereo[i * 2].toInt()
-            val right = stereo[i * 2 + 1].toInt()
-            mono[i] = ((left + right) / 2).toShort()
+            var mixedSample = 0
+            for (channel in 0 until channels) {
+                mixedSample += samples[i * channels + channel].toInt()
+            }
+            mono[i] = (mixedSample / channels).toShort()
         }
         return mono
+    }
+
+    private fun resample(samples: ShortArray, sourceRate: Float, targetRate: Int): ShortArray {
+        if (samples.isEmpty() || sourceRate <= 0F || sourceRate.roundToInt() == targetRate) return samples
+
+        val outputSize = (samples.size.toDouble() * targetRate / sourceRate).roundToInt().coerceAtLeast(1)
+        val output = ShortArray(outputSize)
+        val step = sourceRate.toDouble() / targetRate
+
+        for (i in output.indices) {
+            val sourceIndex = i * step
+            val lowerIndex = floor(sourceIndex).toInt().coerceAtMost(samples.lastIndex)
+            val upperIndex = (lowerIndex + 1).coerceAtMost(samples.lastIndex)
+            val fraction = sourceIndex - lowerIndex
+
+            val lowerSample = samples[lowerIndex].toInt()
+            val upperSample = samples[upperIndex].toInt()
+            output[i] = (lowerSample + (upperSample - lowerSample) * fraction).roundToInt().toShort()
+        }
+
+        return output
     }
 
     private class PlayingSound(
