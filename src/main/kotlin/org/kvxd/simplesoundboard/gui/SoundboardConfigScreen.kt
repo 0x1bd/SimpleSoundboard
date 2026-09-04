@@ -33,6 +33,6 @@ class SoundboardConfigScreen(private val parent: Screen?) : Screen(Component.lit
     }
 
     override fun onClose() {
-        minecraft?.setScreen(parent)
+        minecraft.gui.setScreen(parent)
     }
 }

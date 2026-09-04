@@ -50,10 +50,10 @@ class SimpleSoundboardClient : ClientModInitializer {
             if (client.player == null) return@register
 
             if (OPEN_GUI_KEY.consumeClick()) {
-                client.setScreen(SoundboardScreen())
+                client.gui.setScreen(SoundboardScreen())
             }
 
-            if (client.screen == null) {
+            if (client.gui.screen() == null) {
                 handleSoundKeybinds(client)
             }
         }

@@ -119,7 +119,7 @@ class YtDlpScreen(private val parent: Screen?) : Screen(Component.literal("YouTu
     }
 
     override fun onClose() {
-        minecraft.setScreen(parent)
+        minecraft.gui.setScreen(parent)
     }
 
     private fun extractProgress(line: String): Int? {

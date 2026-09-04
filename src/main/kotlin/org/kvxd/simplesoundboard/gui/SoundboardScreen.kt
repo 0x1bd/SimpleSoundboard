@@ -136,7 +136,7 @@ class SoundboardScreen(
 
         addRenderableWidget(
             Button.builder(Component.literal("Config")) {
-                mc.setScreen(SoundboardConfigScreen(this))
+                mc.gui.setScreen(SoundboardConfigScreen(this))
             }.size(actionButtonWidth, actionButtonHeight)
                 .pos(currentX, actionsY).build()
         )
@@ -144,7 +144,7 @@ class SoundboardScreen(
 
         addRenderableWidget(
             Button.builder(Component.literal("YouTube")) {
-                mc.setScreen(YtDlpScreen(this))
+                mc.gui.setScreen(YtDlpScreen(this))
             }.size(actionButtonWidth, actionButtonHeight)
                 .pos(currentX, actionsY).build()
         )
@@ -224,7 +224,7 @@ class SoundboardScreen(
 
     override fun onClose() {
         SoundboardConfig.save()
-        mc.setScreen(parent)
+        mc.gui.setScreen(parent)
     }
 
     override fun keyPressed(input: KeyEvent): Boolean {
